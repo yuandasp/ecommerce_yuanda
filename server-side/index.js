@@ -1,13 +1,57 @@
 const express = require("express");
 const PORT = 8001;
 const app = express();
-const { db } = require("./database");
+const { db, query } = require("./database");
 const cors = require("cors");
 const { authRoutes } = require("./routes");
 const { body, validationResult } = require("express-validator");
+const multer = require("multer");
+const path = require("path");
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static("public")); //untuk nampilin data di browser
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "public");
+  },
+  filename: function (req, file, cb) {
+    // console.log(file.originalname);
+    cb(
+      null,
+      path.parse(file.originalname).name +
+        "-" +
+        Date.now() +
+        path.extname(file.originalname)
+    );
+  },
+});
+
+const upload = multer({ storage });
+
+//file adalah key yang ditaro di postman
+app.post("/upload", upload.single("file"), async (req, res) => {
+  //   console.log("Test");
+  //   console.log(req.file);
+
+  try {
+    const { file } = req;
+    const filepath = file ? "/" + file.filename : null;
+
+    let data = JSON.parse(req.body.data);
+    //   console.log(data);
+    let response = await query(
+      `UPDATE users SET imagePath=${db.escape(
+        filepath
+      )} WHERE id_users=${db.escape(data.id)}`
+    );
+    //   console.log(response);
+    res.status(200).send({ filepath });
+  } catch (error) {
+    res.status(error.status || 500).send({ message: "error" });
+  }
+});
 
 app.post(
   "/validation",
