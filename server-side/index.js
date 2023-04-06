@@ -5,42 +5,22 @@ const { db, query } = require("./database");
 const cors = require("cors");
 const { authRoutes } = require("./routes");
 const { body, validationResult } = require("express-validator");
-const multer = require("multer");
-const path = require("path");
+const upload = require("./middleware/multer");
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public")); //untuk nampilin data di browser
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "public");
-  },
-  filename: function (req, file, cb) {
-    // console.log(file.originalname);
-    cb(
-      null,
-      path.parse(file.originalname).name +
-        "-" +
-        Date.now() +
-        path.extname(file.originalname)
-    );
-  },
-});
-
-const upload = multer({ storage });
-
 //file adalah key yang ditaro di postman
 app.post("/upload", upload.single("file"), async (req, res) => {
   //   console.log("Test");
   //   console.log(req.file);
-
   try {
     const { file } = req;
     const filepath = file ? "/" + file.filename : null;
 
     let data = JSON.parse(req.body.data);
-    //   console.log(data);
+    console.log("data:", data);
     let response = await query(
       `UPDATE users SET imagePath=${db.escape(
         filepath
@@ -62,6 +42,7 @@ app.post(
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: errors.array() });
+      // return res.status(200).json({ error: errors.array() });
     }
     res.status(200).send(req.body);
   }

@@ -44,7 +44,7 @@ module.exports = {
     let getEmailQuery = `SELECT * FROM users WHERE email=${db.escape(email)}`;
     let isEmailExist = await query(getEmailQuery);
     if (isEmailExist.length > 0) {
-      return res.status(400).send({ message: "Email has been used" });
+      return res.status(200).send({ message: "Email has been used" });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -54,8 +54,13 @@ module.exports = {
       username
     )}, ${db.escape(email)}, ${db.escape(hashPassword)}, ${db.escape(
       name
-    )}, false, null)`;
-    let addUserResult = await query(addUserQuery);
+    )}, false, null, false)`;
+
+    let addUserResult = await query(addUserQuery); //input data ke database
+
+    //abis login, harus ambil datanya lagi
+    let payload = { id: addUserResult.insertId };
+    const token = jwt.sign(payload, "joe", { expiresIn: "4h" });
 
     let mail = {
       from: `Admin <yuanhar123@gmail.com>`,
@@ -63,8 +68,9 @@ module.exports = {
       subject: `Verified your account!`,
       html: `
       <div>
-      <p> Yukkk ke siniii</p>
-      <a href="http://localhost:3000/verification/${token}">Click here</a>
+      <p>Thanks for register, you need to activate your account,</p>
+      <a href="http://localhost:3000/user/verification/${token}">Click here</a>
+      <span>to activate</span>
       </div>`,
     };
 
@@ -99,6 +105,12 @@ module.exports = {
           .send({ message: "Email or Password is Invalid" });
       }
 
+      if (!isEmailExist[0].isActive) {
+        return res
+          .status(400)
+          .send({ message: "Please verified your account" });
+      }
+
       const isValid = await bcrypt.compare(password, isEmailExist[0].password);
 
       if (!isValid) {
@@ -123,7 +135,10 @@ module.exports = {
           name: isEmailExist[0].name,
           email: isEmailExist[0].email,
           username: isEmailExist[0].username,
+          imagePath: isEmailExist[0].imagePath,
+          isActive: isEmailExist[0].isActive,
         },
+        // ,success:true
       });
     } catch (error) {
       res.status(error.status || 500).send(error);
@@ -163,10 +178,25 @@ module.exports = {
           name: users[0].name,
           email: users[0].email,
           username: users[0].username,
+          isActive: users[0].isActive,
+          imagePath: users[0].imagePath,
         },
       });
     } catch (error) {
       res.status(error.status || 500).send(error);
+    }
+  },
+  verification: async (req, res) => {
+    try {
+      // console.log("verification", req.user);
+      const id = req.user.id;
+      let updateIsActiveQuery = `UPDATE users SET isActive=true WHERE id_users=${db.escape(
+        id
+      )}`;
+      let updateResponse = await query(updateIsActiveQuery);
+      res.status(200).send({ success: true, message: "Account is verified" });
+    } catch (error) {
+      res.status(500).send(error);
     }
   },
 };

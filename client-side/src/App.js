@@ -1,41 +1,37 @@
-import './App.css';
-import React, { useState, useEffect } from 'react'
-import { Routes, Route, Link } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
+import Home from "./pages/Home";
+import UpdateProfile from "./pages/UpdateProfile";
 import Navbar from "./components/Navbar";
+import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Verification from "./pages/Verification";
+import PrivateRoute from "./components/PrivateRoute";
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { checkLogin } from "./features/users/userSlice";
 import Users from "./pages/Users";
-import Login from './pages/Login';
-import { checkLogin } from './features/users/usersSlice';
-import { useDispatch } from 'react-redux';
-import { useSelector } from "react-redux";
 
 function App() {
-  const dispatch = useDispatch()
-  const userToken = localStorage.getItem("user_token")
-  const userGlobal = useSelector((state) => state.users.user);
-
-
-
-  useEffect(() => {
-    dispatch(checkLogin(userToken))
-    // alert(userToken)
-  }, [])
+  const dispatch = useDispatch();
+  const authToken = localStorage.getItem("authToken");
+  // useEffect(() => {
+  //   dispatch(checkLogin(authToken));
+  // }, []);
 
   return (
-    <div>
+    <>
       <Navbar />
       <Routes>
-        <Route path="/users" element={<Users />} />
-        {
-          userGlobal.id ===''?
-          <>
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} /></>
-          
-:null
-        }
+        <Route element={<PrivateRoute />}>
+          <Route path="/user/update-profile" element={<UpdateProfile />} />
+          <Route path="/users" element={<Users />} />
+        </Route>
+        <Route path="/" element={<Home />} />
+        <Route path="/user/login" element={<Login />} />
+        <Route path="/user/register" element={<Register />} />
+        <Route path="/user/verification/:token" element={<Verification />} />
       </Routes>
-    </div>
+    </>
   );
 }
 
